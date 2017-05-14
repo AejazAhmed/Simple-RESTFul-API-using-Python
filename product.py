@@ -75,9 +75,14 @@ def update_product(db_connection,data):
                 else:
                     query_set += keys +"=''"
             if query_set:
-                c.execute("UPDATE product SET "+query_set+" WHERE id ="+str(data["id"]))
-                db_connection.commit()
-                return {"success":"database updated"}
+                c.execute("SELECT * FROM product WHERE id="+str(data["id"]))
+                query = c.fetchall()
+                if query:
+                    c.execute("UPDATE product SET "+query_set+" WHERE id ="+str(data["id"]))
+                    db_connection.commit()
+                    return {"success":"database updated"}
+                else:
+                    return {"error":"product with given id does not exists"}
             else:
                 return {"key_error":"please provide data to updated data"}
         else:
@@ -89,12 +94,16 @@ def delete_product(db_connection,data):
     try:
         c = db_connection.cursor()
         if 'id' in data:
-            c.execute("DELETE FROM product WHERE id ="+str(data["id"]))
-            db_connection.commit()
-            return {"success":"successfully deleted"}
+            c.execute("SELECT * FROM product WHERE id="+str(data["id"]))
+            query = c.fetchall()
+            if query:
+                c.execute("DELETE FROM product WHERE id ="+str(data["id"]))
+                db_connection.commit()
+                return {"success":"successfully deleted"}
+            else:
+                return {"error":"product with given id does not exists"}
         else:
             return {"key_error":"please provid Id to perform the delete operation"}
-        return TODOS
     except Exception as e:
         print str(e)
         return {"error":str(e)}

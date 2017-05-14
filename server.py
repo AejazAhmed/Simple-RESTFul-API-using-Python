@@ -25,12 +25,13 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
             if query:
                 query_components = dict(qc.split("=") for qc in query.split("&"))
                 if 'token' in query_components:
+                    print "qtoken", query_components['token']
+                    print is_authenticate
                     is_authenticate = authenticate(self.conn,query_components['token'])
+                    print is_authenticate
                     del query_components['token']
 
-            if path == "/user":
-                print 'user'
-            elif path =="/product":
+            if path =="/product":
                 if is_authenticate:
                     data = search_product(self.conn,query_components)
                     self.send_response(200)
@@ -46,7 +47,10 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({'error': "requested url does not exists"}))
             return
         except Exception as e:
-            return {"error":str(e)}
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write({"error":str(e)})
+            return
 
     def do_POST(self):
         try:
@@ -57,7 +61,6 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
             query = url.query
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
-            print "--->",post_data
             if query:
                 query_components = dict(qc.split("=") for qc in query.split("&"))
                 if 'token' in query_components:
@@ -68,7 +71,7 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
                     data = json.loads(post_data)
                     if 'username' in data and 'password' in data:
                         response = sign_up(self.conn,data)
-                        self.send_response(200)
+                        self.send_response(201)
                         self.end_headers()
                         self.wfile.write(json.dumps(response))
                     else:
@@ -90,11 +93,11 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
                             self.end_headers()
                             self.wfile.write(json.dumps({'data': response}))
                         else:
-                            self.send_response(200)
+                            self.send_response(400)
                             self.end_headers()
                             self.wfile.write(json.dumps({'error': "Please provide mandatory fileds"}))
                     else:
-                        self.send_response(200)
+                        self.send_response(400)
                         self.end_headers()
                         self.wfile.write(json.dumps({'error': "Please provide valid json"}))
                 else:
@@ -103,31 +106,35 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write({"unauthorized": "You are not authorized to make request"})
 
             elif path == "/login":
-                data = json.loads(post_data)
-                if 'username' in data and 'password' in data:
-                    response = login(self.conn,data)
-                    if 'error' in response:
-                        self.send_response(406)
+                if post_data:
+                    print post_data
+                    data = json.loads(post_data)
+                    if 'username' in data and 'password' in data:
+                        response = login(self.conn,data)
+                        if 'error' in response:
+                            self.send_response(406)
+                        else:
+                            self.send_response(202)
+                        self.end_headers()
+                        self.wfile.write(json.dumps({'data': response}))
                     else:
-                        self.send_response(202)
-                    self.end_headers()
-                    self.wfile.write(json.dumps({'data': response}))
+                        self.send_response(406)
+                        self.end_headers()
+                        self.wfile.write(json.dumps({'error': "please provide username and password"}))
                 else:
-                    self.send_response(406)
+                    self.send_response(400)
                     self.end_headers()
-                    self.wfile.write(json.dumps({'error': "please provide username and password"}))
-
-            # elif path == "/logout":
-            #     self.send_response(200)
-            #     self.end_headers()
-            #     # self.wfile.write(json.dumps({'data': data}))
+                    self.wfile.write(json.dumps({'error': "Please provide valid json"}))
             else:
                 self.send_response(404)
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': "requested url does not exists"}))
             return
         except Exception as e:
-            return {"error":str(e)}
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write({"error":str(e)})
+            return
 
     def do_PUT(self):
         try:
@@ -138,23 +145,28 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
             query = url.query
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
-            data = json.loads(post_data)
             if query:
                 query_components = dict(qc.split("=") for qc in query.split("&"))
                 if 'token' in query_components:
                     is_authenticate = authenticate(self.conn,query_components['token'])
                     del query_components['token']
-
-            # if path == "/user/update":
-            #     self.send_response(200)
-            #     self.end_headers()
-            #     self.wfile.write(json.dumps({'data': data}))
             if path == "/product/update":
                 if is_authenticate:
-                    response = update_product(self.conn,data)
-                    self.send_response(200)
-                    self.end_headers()
-                    self.wfile.write(json.dumps({'data': response}))
+                    if post_data:
+                        data = json.loads(post_data)
+                        response = update_product(self.conn,data)
+                        if 'success' in response:
+                            self.send_response(200)
+                            self.end_headers()
+                            self.wfile.write(json.dumps(response))
+                        else:
+                            self.send_response(200)
+                            self.end_headers()
+                            self.wfile.write(json.dumps(response))
+                    else:
+                        self.send_response(400)
+                        self.end_headers()
+                        self.wfile.write(json.dumps({'error': "please provide valid json"}))
                 else:
                     self.send_response(401)
                     self.end_headers()
@@ -165,7 +177,10 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({'error': "requested url does not exists"}))
             return
         except Exception as e:
-            return {"error":str(e)}
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write({"error":str(e)})
+            return
 
 
     def do_DELETE(self):
@@ -177,23 +192,28 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
             query = url.query
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
-            data = json.loads(post_data)
             if query:
                 query_components = dict(qc.split("=") for qc in query.split("&"))
                 if 'token' in query_components:
                     is_authenticate = authenticate(self.conn,query_components['token'])
                     del query_components['token']
-                print ("query",query_components)
-            # if path == "/user/delete":
-            #     self.send_response(200)
-            #     self.end_headers()
-            #     self.wfile.write(json.dumps({'data': data}))
             if path == "/product/delete":
                 if is_authenticate:
-                    response = delete_product(self.conn,data)
-                    self.send_response(200)
-                    self.end_headers()
-                    self.wfile.write(json.dumps({'data': response}))
+                    if post_data:
+                        data = json.loads(post_data)
+                        response = delete_product(self.conn,data)
+                        if 'success' in response:
+                            self.send_response(200)
+                            self.end_headers()
+                            self.wfile.write(json.dumps(response))
+                        else:
+                            self.send_response(200)
+                            self.end_headers()
+                            self.wfile.write(json.dumps(response))
+                    else:
+                        self.send_response(400)
+                        self.end_headers()
+                        self.wfile.write(json.dumps({'error': "please provide valid json"}))
                 else:
                     self.send_response(401)
                     self.end_headers()
@@ -204,7 +224,10 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({'error': "requested url does not exists"}))
             return
         except Exception as e:
-            return {"error":str(e)}
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write({"error":str(e)})
+            return
 
 
 def run(server_class=HTTPServer,

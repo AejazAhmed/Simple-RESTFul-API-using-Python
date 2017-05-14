@@ -11,7 +11,7 @@ def sign_up(db_connection,data):
             del data['token']
         c = db_connection.cursor()
         _id = int(time.time())+randint(0,100000)
-        values = "%d,'%s','%s',''" % (_id,data['username'],data['password'])
+        values = "%d,'%s','%s','%s'" % (_id,data['username'],data['password'],str(_id))
         c.execute("INSERT INTO user(id,username,password,token) VALUES("+values+")")
         db_connection.commit()
         return {"success":"user with username "+data['username']+" created successfully. please login with given to gain access"}
@@ -61,8 +61,8 @@ def authenticate(db_connection,data):
         c.execute( "SELECT * FROM user where token ="+"'"+data+"'" )
         # c.execute( "SELECT * FROM user where token ="+"'"+data['token']+"' and username="+"'"+data['username']+"'" )
         token = c.fetchall()
-        print token
         if token:
+            print "auth", token
             return True
         else:
             return False

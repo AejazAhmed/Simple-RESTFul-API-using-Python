@@ -2,6 +2,7 @@
 import cgi,cgitb
 import sys
 import json
+from database import run_database
 from product import add_product,search_product,update_product,delete_product
 from authmodule import sign_up,login,authenticate
 import sqlite3
@@ -241,4 +242,5 @@ def run(server_class=HTTPServer,
 
 
 if __name__ == '__main__':
+    run_database()
     run()

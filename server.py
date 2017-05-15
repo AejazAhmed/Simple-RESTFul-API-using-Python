@@ -233,11 +233,11 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
 
 def run(server_class=HTTPServer,
         handler_class=ServerRequestHandler):
-        server_address = ('0.0.0.0', 8000)
+        server_address = ('', 8000)
         httpd = server_class(server_address, handler_class)
     # httpd.serve_forever()
         while True:
-            print ("running at 0.0.0.0:8000")
+            print ("running at",server_address)
             httpd.handle_request()
 
 
